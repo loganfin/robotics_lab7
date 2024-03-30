@@ -1,5 +1,11 @@
 # Lab 7
 
+Beaker: Robot A
+
+Bunsen: Robot B
+
+## Sequence of Events
+
 1. Robot A: picks up the die
 
 1. Robot A: drops the die at the first conveyor
@@ -19,3 +25,25 @@
 1. Robot B: place the die on conveyor belt B
 
 1. Etc.
+
+## Misc Notes
+
+- We can have multiple threads, just a single node
+
+- We may have to busy wait for the other topic to be created before we create a
+  listener for it
+
+- Turning on/off the conveyor belts could be a service (or services)
+
+- Moving the robot arms could be a topic
+
+## Logan
+
+- Figure out the time/distance function
+
+## Ben
+
+## Topics
+
+- "/logan/time"
+- "/ben/time"
