@@ -41,134 +41,65 @@ class Demo(Node):
     def __init__(self, namespace):
         super().__init__("robot")
 
-        self.cart_ac = ActionClient(
-            self, CartPose, f"/{namespace}/cartesian_pose"
-        )
+        self.actions = {
+            "cartesian": ActionClient(
+                self, CartPose, f"/{namespace}/cartesian_pose"
+            ),
+            "conveyor": ActionClient(self, Conveyor, f"/{namespace}/conveyor"),
+            "gripper": ActionClient(
+                self, SchunkGripper, f"/{namespace}/schunk_gripper"
+            ),
+        }
 
-        self.conveyor_ac = ActionClient(
-            self, Conveyor, f"/{namespace}/conveyor"
-        )
-
-        self.gripper_ac = ActionClient(
-            self, SchunkGripper, f"/{namespace}/schunk_gripper"
-        )
-
-        self.proximity_topic = self.create_subscription(
-            ProxReadings,
-            f"/{namespace}/prox_readings",
-            self.listener,
-            qos_profile_sensor_data,
-        )
+        # self.topics = {
+        #     "proximity": self.create_subscription(
+        #         ProxReadings,
+        #         f"/{namespace}/prox_readings",
+        #         self.listener,
+        #         qos_profile_sensor_data,
+        #     )
+        # }
 
     def listener(self, msg):
         self.current_prox_reading = msg.right
 
-    def send_cart_action(self, index):
-        self.cart_ac[index].wait_for_server()  # Wait till it's ready
-
-        self.get_logger().info(f"p[{index}]")
-
+    def send_cart_goal(self, position):
         goal = CartPose.Goal()  # Make Goal
 
-        goal.x = p[index][0]
-        goal.y = p[index][1]
-        goal.z = p[index][2]
-        goal.w = p[index][3]
-        goal.p = p[index][4]
-        goal.r = p[index][5]
+        goal.x = position[0]
+        goal.y = position[1]
+        goal.z = position[2]
+        goal.w = position[3]
+        goal.p = position[4]
+        goal.r = position[5]
 
-        result = self.cart_ac[index].send_goal(goal).result
+        result = self.actions["cartesian"].send_goal(goal).result
         self.get_logger().info(f"Result {result}")
 
-    def send_gripper_action(self, command):
+    def send_gripper_goal(self, command):
         goal = SchunkGripper.Goal()
         goal.command = command
 
-        result = self.gripper_ac.send_goal(goal).result
+        result = self.actions["gripper"].send_goal(goal).result
         self.get_logger().info(f"Result {result}")
 
-    def send_conveyor_action(self, command):
+    def send_conveyor_goal(self, command):
         goal = Conveyor.Goal()
         goal.command = command
 
-        result = self.conveyor_ac.send_goal(goal).result
+        result = self.actions["conveyor"].send_goal(goal).result
         self.get_logger().info(f"Result {result}")
 
     def demo(self):
         # Reset
-        self.send_conveyor_action("stop")
-        self.send_gripper_action("open")
-        self.send_cart_action(0)
+        self.actions["conveyor"].wait_for_server()
+        self.send_conveyor_goal("stop")
 
-        # Die table position
-        self.send_cart_action(1)
+        self.actions["gripper"].wait_for_server()
+        self.send_gripper_goal("open")
 
-        # Pick up die
-        self.send_gripper_action("close")
-
-        sleep(1)
-
-        self.send_cart_action(0)
-
-        # Start of conveyor (above)
-        self.send_cart_action(2)
-
-        # Start of conveyor (contact with belt)
-        self.send_cart_action(3)
-
-        # Release die
-        self.send_gripper_action("open")
-        sleep(1)
-
-        # Start conveyor
-        self.send_conveyor_action("forward")
-
-        # Start of conveyor (above)
-        self.send_cart_action(2)
-
-        # End of conveyor (above)
-        self.send_cart_action(4)
-
-        # sleep(5)
-
-        while self.current_prox_reading != True:
-            pass
-
-        # Wait for sensor to go low
-        self.send_conveyor_action("stop")
-
-        # End of conveyor (contact with belt)
-        self.send_cart_action(5)
-
-        # Pick up die
-        self.send_gripper_action("close")
-        sleep(1)
-
-        # End of conveyor (above)
-        self.send_cart_action(4)
-
-        # These long sleeps are necessary because the server sometimes responds
-        # before the robot finishes moving
-        sleep(5)
-
-        # Rest position
-        self.send_cart_action(0)
-
-        sleep(5)
-
-        # Die table position + 90 degree roll rotation
-        self.send_cart_action(6)
-
-        # Release die
-        self.send_gripper_action("open")
-        sleep(1)
-
-        # sleep(5)
-
-        # Rest position
-        self.send_cart_action(0)
-
-        sleep(5)
+        self.actions["cartesian"].wait_for_server()
+        self.send_cart_goal(p[0])
 
 
 if __name__ == "__main__":
