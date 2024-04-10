@@ -80,15 +80,6 @@ class Demo(Node):
             ),
         }
 
-        # self.topics = {
-        #     "proximity": self.create_subscription(
-        #         ProxReadings,
-        #         f"/{namespace}/prox_readings",
-        #         self.listener,
-        #         qos_profile_sensor_data,
-        #     )
-        # }
-
         self.publisher = self.create_publisher(
             Float64,
             "BenLoganBunsen",
@@ -97,8 +88,8 @@ class Demo(Node):
 
         self.bunsen_subscriber = self.create_subscription(
             Float64,
-            "/BenLoganBunsen",
-            self.bunsen_callback,
+            "/BenLoganBeaker",
+            self.beaker_callback,
             qos_profile_sensor_data,
         )
 
@@ -112,9 +103,6 @@ class Demo(Node):
         # self.timer = self.create_timer(time, self.timer_callback)
         # self.timer.cancel()
 
-    def prox_sensor_callback(self, msg):
-        self.current_prox_reading = msg.right
-        pass
 
     def create_subscriber(self):
         self.subscriber = self.create_subscription(
@@ -134,6 +122,10 @@ class Demo(Node):
         # Is there an offset that needs to be calculated
         self.beaker_x_coord = msg.data
         self.get_logger().info(f"Beaker: {msg.data}")
+        pass
+
+    def prox_sensor_callback(self, msg):
+        self.current_prox_reading = msg.right
         pass
 
     # def timer_callback(self):
@@ -168,9 +160,6 @@ class Demo(Node):
     #     sleep(1)
 
     #     self.send_cart_goal(positions["start"])
-
-    def listener(self, msg):
-        self.current_prox_reading = msg.right
 
     def send_cart_goal(self, position):
         goal = CartPose.Goal()  # Make Goal
@@ -279,16 +268,20 @@ class Demo(Node):
             self.get_logger().info("Waiting on Beaker...")
 
             # Wait for notification from Beaker
-            # while self.beaker_rx is not True:
-            #    pass
+            while self.beaker_rx is not True:
+               pass
+
+            self.get_logger().info("Received Message...")
+            self.beaker_rx = False
 
             # Message received, go to Die position
             die_pos_above = positions["conveyor_a_above"].copy()
             # die_pos_above = positions["conveyor_front_above"].copy()
 
-            # die_pos_above[0] = self.beaker_offset
+            # Approximately 40mm difference between Beaker and Bunsen
+            die_pos_above[0] = self.beaker_x_coord - 40
             # die_pos_above[0] -= 300
-            die_pos_above[0] = 500.0
+            #die_pos_above[0] = 500.0
 
             die_pos_belt = positions["conveyor_a_belt"].copy()
             # die_pos_belt = positions["conveyor_front_belt"].copy()
@@ -333,7 +326,10 @@ class Demo(Node):
             self.send_conveyor_goal("stop")
             elapsed_time = (time_ns() - start_time) / 10**9
             publish_msg = Float64()
-            publish_msg.data = get_distance_traveled(elapsed_time)
+            publish_msg.data = positions["conveyor_front_above"][0] - get_distance_traveled(elapsed_time)
+
+            self.get_logger().info(f"Publishing {publish_msg.data}")
+
             self.publisher.publish(publish_msg)
 
             self.send_cart_goal(positions["start"])
