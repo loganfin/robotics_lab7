@@ -41,10 +41,10 @@ p = [
 positions = {
     "start": [522.0, 5.0, -40.0, 179.9, 0.0, 30.0],
     "die_start": [522.0, 5.0, -195.0, -179.9, 0.0, 30.0],
-    "conveyor_front_above": [749.0, -575.0, -40.0, 179.9, 0.0, 30.0],
-    "conveyor_front_belt": [749.0, -575.0, -203.0, -179.9, 0.0, 30.0],
-    "conveyor_front_above_roll": [749.0, -575.0, -40.0, 179.9, 0.0, 120.0],
-    "conveyor_front_belt_roll": [749.0, -575.0, -203.0, -179.9, 0.0, 120.0],
+    "conveyor_front_above": [749.0, -578.0, -40.0, 179.9, 0.0, 30.0],
+    "conveyor_front_belt": [749.0, -578.0, -203.0, -179.9, 0.0, 30.0],
+    "conveyor_front_above_roll": [749.0, -578.0, -40.0, 179.9, 0.0, 120.0],
+    "conveyor_front_belt_roll": [749.0, -578.0, -203.0, -179.9, 0.0, 120.0],
     "conveyor_a_above": [0.0, -833.0, -40.0, -179.9, 0.0, 30.0],
     "conveyor_a_belt": [0.0, -833.0, -203.0, -179.9, 0.0, 30.0],
     "rotation_station_above": [410.0, 250.0, -80.0, 179.9, 0.0, 30.0],
@@ -114,7 +114,6 @@ class Demo(Node):
 
     def bunsen_callback(self, msg):
         self.get_logger().info(f"Bunsen: {msg.data}")
-        pass
 
     def beaker_callback(self, msg):
         self.beaker_rx = True
@@ -122,11 +121,9 @@ class Demo(Node):
         # Is there an offset that needs to be calculated
         self.beaker_x_coord = msg.data
         self.get_logger().info(f"Beaker: {msg.data}")
-        pass
 
     def prox_sensor_callback(self, msg):
         self.current_prox_reading = msg.right
-        pass
 
     # def timer_callback(self):
     #     self.send_conveyor_goal("stop")
@@ -279,7 +276,7 @@ class Demo(Node):
             # die_pos_above = positions["conveyor_front_above"].copy()
 
             # Approximately 40mm difference between Beaker and Bunsen
-            die_pos_above[0] = self.beaker_x_coord - 40
+            die_pos_above[0] = self.beaker_x_coord - 55
             # die_pos_above[0] -= 300
             #die_pos_above[0] = 500.0
 
@@ -334,9 +331,9 @@ class Demo(Node):
 
             self.send_cart_goal(positions["start"])
 
-        # Send time over own topic
-
-        # Return to start position
+        # Exit the program
+        self.get_logger().info("Finished!")
+        raise SystemExit
 
     def temp(self):
         self.reset()
@@ -383,5 +380,8 @@ if __name__ == "__main__":
     print("'l': start lab demo")
     print("'g': start go to temp pos")
 
-    rclpy.spin(bunsen)  # Start executing the node
-    rclpy.shutdown()
+    try:
+        rclpy.spin(bunsen)  # Start executing the node
+    except SystemExit:
+        print("Quitting...")
+        rclpy.shutdown()
